@@ -4,7 +4,7 @@ use anyhow::Context;
 use clap::Parser;
 use std::fs::File;
 use std::io::{BufRead, BufReader, stdin};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -13,26 +13,23 @@ struct Args {
     file: Option<PathBuf>,
 }
 
-fn read_lines_from_file(path: &PathBuf) -> anyhow::Result<Vec<String>> {
-    let file = File::open(path).context(format!("Failed to open file: {}", path.display()))?;
-    let lines: Vec<String> = BufReader::new(file).lines().collect::<Result<_, _>>()?;
-    Ok(lines)
+fn collect_lines(reader: impl BufRead) -> anyhow::Result<Vec<String>> {
+    Ok(reader.lines().collect::<Result<_, _>>()?)
 }
 
-fn read_lines_from_stdin() -> anyhow::Result<Vec<String>> {
-    let lines: Vec<String> = BufReader::new(stdin()).lines().collect::<Result<_, _>>()?;
-    Ok(lines)
-}
-
-fn read_lines(path_opt: Option<PathBuf>) -> anyhow::Result<Vec<String>> {
+fn read_lines(path_opt: Option<&Path>) -> anyhow::Result<Vec<String>> {
     match path_opt {
-        Some(path) => read_lines_from_file(&path),
-        None => read_lines_from_stdin(),
+        Some(path) => {
+            let file = File::open(path)
+                .with_context(|| format!("Failed to open file: {}", path.display()))?;
+            collect_lines(BufReader::new(file))
+        }
+        None => collect_lines(stdin().lock()),
     }
 }
 
 fn read_md(path_opt: Option<PathBuf>) -> anyhow::Result<(yaml_serde::Value, String)> {
-    let lines = read_lines(path_opt)?;
+    let lines = read_lines(path_opt.as_deref())?;
     let (frontmatter, content) = frontmatter::split(&lines);
 
     let frontmatter_str = frontmatter.join("\n");
