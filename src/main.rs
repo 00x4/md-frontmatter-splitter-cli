@@ -38,8 +38,20 @@ fn read_md(path_opt: Option<PathBuf>) -> anyhow::Result<(yaml_serde::Value, Stri
     let frontmatter_str = frontmatter.join("\n");
     let frontmatter_yaml: yaml_serde::Value = yaml_serde::from_str(&frontmatter_str)?;
 
-    let content_str = content.join("\n").trim().to_string();
-    Ok((frontmatter_yaml, content_str))
+    Ok((frontmatter_yaml, join_content(&content)))
+}
+
+/// Joins content lines, dropping leading blank lines and trailing whitespace.
+/// The indentation of the first non-blank line is preserved.
+fn join_content(lines: &[String]) -> String {
+    lines
+        .iter()
+        .map(String::as_str)
+        .skip_while(|line| line.trim().is_empty())
+        .collect::<Vec<&str>>()
+        .join("\n")
+        .trim_end()
+        .to_string()
 }
 
 fn main() -> anyhow::Result<()> {
@@ -54,4 +66,33 @@ fn main() -> anyhow::Result<()> {
     println!("{}", serde_json::to_string_pretty(&output)?);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lines(text: &str) -> Vec<String> {
+        text.lines().map(String::from).collect()
+    }
+
+    #[test]
+    fn join_content_preserves_first_line_indent() {
+        assert_eq!(join_content(&lines("    code\nmore")), "    code\nmore");
+    }
+
+    #[test]
+    fn join_content_drops_leading_blank_lines() {
+        assert_eq!(join_content(&lines("\n  \n    code")), "    code");
+    }
+
+    #[test]
+    fn join_content_drops_trailing_whitespace() {
+        assert_eq!(join_content(&lines("body\n\n  \n")), "body");
+    }
+
+    #[test]
+    fn join_content_empty() {
+        assert_eq!(join_content(&[]), "");
+    }
 }
