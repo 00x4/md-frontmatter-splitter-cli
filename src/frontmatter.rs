@@ -1,16 +1,19 @@
 /// Splits a slice of lines into frontmatter and content.
 pub fn split(lines: &[String]) -> (Vec<String>, Vec<String>) {
-    // Remove all leading empty lines
+    // Trim the BOM character from the first line if present,
+    // then remove all leading empty lines
     let lines = lines
         .iter()
+        .enumerate()
+        .map(|(index, line)| match index {
+            0 => line.trim_start_matches('\u{feff}'),
+            _ => line.as_str(),
+        })
         .skip_while(|line| line.trim().is_empty())
-        .cloned()
+        .map(String::from)
         .collect::<Vec<String>>();
 
-    // Trim the BOM character from the first line if present
-    let first_line = lines
-        .first()
-        .map(|line| line.trim_start_matches('\u{feff}').trim_end());
+    let first_line = lines.first().map(|line| line.trim_end());
 
     // No frontmatter if the first line is not '---'
     if first_line != Some("---") {
@@ -107,6 +110,20 @@ mod tests {
     #[test]
     fn strips_bom_from_opening_delimiter() {
         let (frontmatter, content) = split(&lines("\u{feff}---\ntitle: a\n---\nbody"));
+        assert_eq!(frontmatter, lines("title: a"));
+        assert_eq!(content, lines("body"));
+    }
+
+    #[test]
+    fn strips_bom_without_frontmatter() {
+        let (frontmatter, content) = split(&lines("\u{feff}body\nmore"));
+        assert!(frontmatter.is_empty());
+        assert_eq!(content, lines("body\nmore"));
+    }
+
+    #[test]
+    fn strips_bom_on_otherwise_blank_first_line() {
+        let (frontmatter, content) = split(&lines("\u{feff}\n---\ntitle: a\n---\nbody"));
         assert_eq!(frontmatter, lines("title: a"));
         assert_eq!(content, lines("body"));
     }
