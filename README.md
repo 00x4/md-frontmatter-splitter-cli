@@ -1,5 +1,7 @@
 # md-frontmatter-splitter-cli
 
+[![crates.io](https://img.shields.io/crates/v/md-frontmatter-splitter-cli)](https://crates.io/crates/md-frontmatter-splitter-cli)
+
 This is a CLI tool that reads a Markdown file, splits the YAML front matter and the body, and outputs them as JSON.
 
 ## Usage
