@@ -15,7 +15,13 @@ md-frontmatter-splitter-cli <path-to-markdown-file>
 
 # Pipe input
 cat <path-to-markdown-file> | md-frontmatter-splitter-cli
+
+# Explicit stdin with `-`
+cat <path-to-markdown-file> | md-frontmatter-splitter-cli -
 ```
+
+If neither a file nor piped input is given (stdin is a terminal), the tool exits with an error instead of waiting for input.
+To read a file literally named `-`, pass it as `./-`.
 
 Example using sample.md:
 

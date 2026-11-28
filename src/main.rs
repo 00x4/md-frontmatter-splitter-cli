@@ -2,15 +2,16 @@ mod content;
 mod frontmatter;
 
 use anyhow::Context;
-use clap::Parser;
+use clap::error::ErrorKind;
+use clap::{CommandFactory, Parser};
 use std::fs::File;
-use std::io::{BufRead, BufReader, stdin};
+use std::io::{BufRead, BufReader, IsTerminal, stdin};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    /// Path to the file to read (if omitted, reads from standard input)
+    /// Path to the file to read (if omitted or `-`, reads from standard input)
     file: Option<PathBuf>,
 }
 
@@ -20,11 +21,18 @@ fn collect_lines(reader: impl BufRead) -> anyhow::Result<Vec<String>> {
 
 fn read_lines(path_opt: Option<&Path>) -> anyhow::Result<Vec<String>> {
     match path_opt {
-        Some(path) => {
+        Some(path) if path != Path::new("-") => {
             let file = File::open(path)
                 .with_context(|| format!("Failed to open file: {}", path.display()))?;
             collect_lines(BufReader::new(file))
         }
+        Some(_) => collect_lines(stdin().lock()),
+        None if stdin().is_terminal() => Args::command()
+            .error(
+                ErrorKind::MissingRequiredArgument,
+                "specify a file or pipe data to standard input",
+            )
+            .exit(),
         None => collect_lines(stdin().lock()),
     }
 }
