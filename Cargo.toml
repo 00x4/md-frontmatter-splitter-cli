@@ -1,6 +1,6 @@
 [package]
 name = "md-frontmatter-splitter-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "CLI tool that reads a Markdown file, splits the YAML front matter and the body, and outputs them as JSON"
